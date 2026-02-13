@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirecting…</title>
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+<script>
+  (function () {
+    // For user/organization pages like https://test.github.io, base is "/"
+    // If this is a project page (https://user.github.io/repo), set BASE="/repo"
+    const BASE = "";
+
+    const path = window.location.pathname; // e.g. "/s/some_id"
+    const search = window.location.search;
+
+    // If already on /s/?id=... then don't redirect.
+    if (path === `${BASE}/s/` || path === `${BASE}/s/index.html` || search.includes("id=")) {
+      return;
+    }
+
+    // Match "/s/<id>" and redirect to "/s/?id=<id>"
+    const m = path.match(new RegExp(`^${BASE}/s/([^/?#]+)$`));
+    if (m && m[1]) {
+      const id = decodeURIComponent(m[1]);
+      const target = `${BASE}/s/?id=${encodeURIComponent(id)}`;
+      window.location.replace(target);
+      return;
+    }
+
+    // Default: go home
+    window.location.replace(`${BASE}/`);
+  })();
+</script>
+</body>
+</html>
