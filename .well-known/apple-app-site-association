@@ -2,9 +2,12 @@
   "applinks": {
     "details": [
       {
-        "appID": "DYC2N5B35P.com.xinfotech.testunilink",
+        "appIDs": ["DYC2N5B35P.com.xinfotech.testunilink", "DYC2N5B35P.com.xinfotech.eResidency"],
         "paths": ["*"]
       }
     ]
+  },
+  "appclips": {
+    "apps": ["DYC2N5B35P.com.xinfotech.eResidency.StartClip"]
   }
 }
