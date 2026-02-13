@@ -83,11 +83,12 @@
     const isAndroid = /android/i.test(ua);
     const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
 
-    // Attempt to open the app via HTTPS App Link
-    window.location.href = deepLinkUrl;
+    let redirected = false;
 
-    // Fallback timeout
-    setTimeout(() => {
+    const redirectToStore = () => {
+      if (redirected) return;
+      redirected = true;
+      
       if (isAndroid) {
         window.location.href = androidStoreUrl;
       } else if (isIOS) {
@@ -95,7 +96,24 @@
       } else {
         window.location.href = androidStoreUrl;
       }
-    }, 1800); // 1.8s fallback delay
+    };
+
+    // Listen for visibility changes - if app opens, page becomes hidden
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App likely opened, cancel the store redirect
+        redirected = true;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', () => { redirected = true; });
+
+    // Attempt to open the app via HTTPS App Link
+    window.location.href = deepLinkUrl;
+
+    // Quick fallback - redirect to store if app doesn't open
+    setTimeout(redirectToStore, 800); // 800ms timeout for immediate redirect
   </script>
 </body>
 </html>
