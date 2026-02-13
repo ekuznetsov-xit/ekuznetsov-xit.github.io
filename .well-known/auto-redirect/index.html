@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opening App…</title>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f8fafc;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+      max-width: 420px;
+      width: 100%;
+    }
+
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    p { font-size: 14px; color: #64748b; }
+
+    .loader {
+      margin: 20px auto;
+      width: 36px;
+      height: 36px;
+      border: 4px solid #e2e8f0;
+      border-top: 4px solid #2563eb;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Opening App…</h1>
+    <div class="loader"></div>
+    <p>If nothing happens, you will be redirected automatically.</p>
+  </div>
+
+  <script>
+    /* =========================
+       SINGLE SOURCE OF TRUTH
+       ========================= */
+    const APP_NAME = "My Awesome App";
+    const ANDROID_PACKAGE = "com.xinfotech.onboardingdemo";
+    const APP_STORE_ID = "1234567890";
+    const BASE = ""; // "
+    /* ========================= */
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id") || "";
+
+    const deepLinkUrl = `${window.location.origin}${BASE}/s/${encodeURIComponent(id)}`;
+
+    const iosStoreUrl = `https://apps.apple.com/app/id${APP_STORE_ID}`;
+
+    const referrerParams = new URLSearchParams({
+      utm_source: "github_pages",
+      utm_medium: "auto_redirect",
+      link_id: id
+    }).toString();
+
+    const androidStoreUrl =
+      `https://play.google.com/store/apps/details?id=${encodeURIComponent(ANDROID_PACKAGE)}` +
+      `&referrer=${encodeURIComponent(referrerParams)}`;
+
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isAndroid = /android/i.test(ua);
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+    // Attempt to open the app via HTTPS App Link
+    window.location.href = deepLinkUrl;
+
+    // Fallback timeout
+    setTimeout(() => {
+      if (isAndroid) {
+        window.location.href = androidStoreUrl;
+      } else if (isIOS) {
+        window.location.href = iosStoreUrl;
+      } else {
+        window.location.href = androidStoreUrl;
+      }
+    }, 1800); // 1.8s fallback delay
+  </script>
+</body>
+</html>
