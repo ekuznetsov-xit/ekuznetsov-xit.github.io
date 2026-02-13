@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.xinfotech.onboardingdemo",
+      "sha256_cert_fingerprints": [
+        "E8:3E:E8:D6:E2:ED:DD:55:88:31:37:53:A2:42:ED:B7:DA:51:55:D4:83:6C:B8:06:2E:7C:AC:02:B4:AA:63:F5"
+      ]
+    }
+  }
+]
