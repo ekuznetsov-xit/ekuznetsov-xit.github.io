@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UUID Request + QR Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1020;
+      --panel: #151c33;
+      --text: #eef2ff;
+      --muted: #aab4d6;
+      --accent: #7c9cff;
+      --success: #40c463;
+      --error: #ff6b6b;
+      --border: #2a355c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1020, #111936);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: rgba(21, 28, 51, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 160px;
+      gap: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0f1630;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 700;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.6; cursor: wait; transform: none; }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      background: #0f1630;
+      white-space: pre-wrap;
+    }
+
+    .status.success { border-color: rgba(64, 196, 99, 0.4); color: #c9f7d4; }
+    .status.error { border-color: rgba(255, 107, 107, 0.4); color: #ffd1d1; }
+
+    .result {
+      margin-top: 20px;
+      display: grid;
+      gap: 16px;
+      justify-items: start;
+    }
+
+    .uuid-box {
+      word-break: break-all;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #0f1630;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+
+    #qrcode {
+      background: white;
+      padding: 12px;
+      border-radius: 16px;
+      min-width: 152px;
+      min-height: 152px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>UUID Request + QR Generator</h1>
+    <p>
+      Generates a random UUID, renders its QR code immediately, and sends it to your endpoint. The server response is shown in the UI when it arrives.
+    </p>
+
+    <div class="grid">
+      <div>
+        <label for="url">Request URL</label>
+        <input id="url" type="text" value="https://example.com/api/uuid" placeholder="https://your-api.example.com/endpoint" />
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="method">HTTP method</label>
+          <select id="method">
+            <option value="POST" selected>POST</option>
+            <option value="GET">GET</option>
+          </select>
+        </div>
+        <div>
+          <label for="uuidKey">UUID field name</label>
+          <input id="uuidKey" type="text" value="uuid" />
+        </div>
+      </div>
+
+      <div>
+        <label for="bodyTemplate">JSON body template for POST</label>
+        <textarea id="bodyTemplate">{
+  "uuid": "{{UUID}}"
+}</textarea>
+        <div class="hint">Use <code>{{UUID}}</code> anywhere in the JSON template. Ignored for GET requests.</div>
+      </div>
+
+      <div>
+        <button id="runBtn">Generate UUID, Send Request, Show QR</button>
+      </div>
+
+      <div id="status" class="status">Ready.</div>
+
+      <div class="result">
+        <div class="uuid-box"><strong>UUID:</strong> <span id="uuidValue">—</span></div>
+        <div id="qrcode"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById('runBtn');
+    const statusEl = document.getElementById('status');
+    const uuidValueEl = document.getElementById('uuidValue');
+    const qrcodeEl = document.getElementById('qrcode');
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function generateUuid() {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function clearQr() {
+      qrcodeEl.innerHTML = '';
+    }
+
+    function renderQr(text) {
+      clearQr();
+      new QRCode(qrcodeEl, {
+        text,
+        width: 128,
+        height: 128,
+      });
+    }
+
+    async function run() {
+      const url = document.getElementById('url').value.trim();
+      const method = document.getElementById('method').value;
+      const uuidKey = document.getElementById('uuidKey').value.trim() || 'uuid';
+      const bodyTemplate = document.getElementById('bodyTemplate').value;
+
+      if (!url) {
+        setStatus('Please enter a request URL.', 'error');
+        return;
+      }
+
+      const uuid = generateUuid();
+      uuidValueEl.textContent = uuid;
+      clearQr();
+      runBtn.disabled = true;
+      renderQr(uuid);
+      setStatus(`Generated UUID: ${uuid}\nQR code rendered immediately.\nSending request...`);
+
+      try {
+        let response;
+
+        if (method === 'GET') {
+          const requestUrl = new URL(url);
+          requestUrl.searchParams.set(uuidKey, uuid);
+          response = await fetch(requestUrl.toString(), {
+            method: 'GET'
+          });
+        } else {
+          const rawBody = bodyTemplate.replaceAll('{{UUID}}', uuid);
+          let parsedBody;
+          try {
+            parsedBody = JSON.parse(rawBody);
+          } catch (jsonError) {
+            throw new Error('Body template is not valid JSON after UUID replacement.');
+          }
+
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(parsedBody)
+          });
+        }
+
+        const responseText = await response.text();        if (response.ok) {
+          setStatus(
+            `Request finished.\nStatus: ${response.status}\nResponse:\n${responseText || '[empty response]'}`,
+            'success'
+          );
+        } else {
+          setStatus(
+            `Request finished with error status.\nStatus: ${response.status}\nResponse:\n${responseText || '[empty response]'}`,
+            'error'
+          );
+        }
+      } catch (error) {
+        setStatus(`Error: ${error.message}`, 'error');
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    runBtn.addEventListener('click', run);
+  </script>
+</body>
+</html>
